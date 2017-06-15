@@ -1,0 +1,272 @@
+---
+output: pdf_document
+---
+
+```{r do_work, include=FALSE}
+##code block do_work does most of the data processing.  Code is hidden from user, only make dataframes for future use
+##command arguements
+##Argument 1 is NDVI file
+##argument 2 is IRT file
+
+#set options
+options(digits=12)
+#get the basename of each file
+nameIRT=sub("^([^.]*).*", "\\1", basename(dataPathIRT)) 
+nameNDVI=sub("^([^.]*).*", "\\1", basename(dataPathNDVI))
+
+##read both NDVI and IRT file
+dataNDVI=read.table(paste(cur, dataPathNDVI, sep="/"), header=TRUE)
+dataIRT=read.table(paste(cur, dataPathIRT,sep="/"), header=TRUE)
+
+#Find height and width to scale graphing
+height=max(dataNDVI$absolute_sensor_position_y)-min(dataNDVI$absolute_sensor_position_y)
+width=max(dataNDVI$absolute_sensor_position_x)-min(dataNDVI$absolute_sensor_position_x)
+#get a ratio of height and width to scale graphs with
+ratio=width/height
+
+##find average values to find experiment.  Used to find experiment may change to median in the future
+avgx=mean(dataNDVI$absolute_sensor_position_x)
+avgy=mean(dataNDVI$absolute_sensor_position_y)
+
+##go to the database find experiment that falls within plots
+#Create connection to KSU WheatGenetics server
+require(DBI)
+require(RMySQL)
+#connect to the database
+#con=dbConnect(MySQL(),  user='wheatgeneticist', password="password", dbname='wheatgenetics', host='apate', port=6306)
+con=dbConnect(MySQL(),  user='wheatgeneticist', password="password", dbname='wheatgenetics', host='apate')
+
+
+##find experiment based on average values
+##!!!may need to update this to include year
+#write sql statement with variables
+sqlStatement = paste("select e.* from experiment e where e.C1_1_x <", avgx, " and e.C1_2_x >", avgx,"and e.C1_1_y <", avgy, "and e.C2_1_y >", avgy, "and e.experiment_id like '15%'", sep=" ")
+#perform query
+experiment=dbGetQuery(con, sqlStatement)
+
+#get experiment_id for future use
+experiment_id=experiment$experiment_id
+
+##query plots that have the experiment_id by making sql statement
+sqlStatementPlots = paste("select pm.* from plot_map pm right join plot p  on pm.plot_id = p.plot_id where p.experiment_id = '", experiment_id,"'" ,sep="")
+
+##query the database
+plots=dbGetQuery(con, sqlStatementPlots)
+
+#detach RMySQL
+detach("package:RMySQL", unload=TRUE)
+
+#load sqldf
+require(sqldf)
+##asssign data to plots using sqldf and the plots NDVI/IRT dataframes
+assignedNDVI=sqldf("select d.*, b.* from dataNDVI d, plots b where d.absolute_sensor_position_x > b.C1_1_x and d.absolute_sensor_position_x < b.C1_2_x and d.absolute_sensor_position_y > b.C1_1_y and d.absolute_sensor_position_y < C2_1_y")
+assignedIRT=sqldf("select d.*, b.* from dataIRT d, plots b where d.absolute_sensor_position_x > b.C1_1_x and d.absolute_sensor_position_x < b.C1_2_x and d.absolute_sensor_position_y > b.C1_1_y and d.absolute_sensor_position_y < C2_1_y")
+
+#require plyr
+require(plyr)
+##change data frame to assigned_data, separate based on plot name and calculate within plot paramenter
+sum_assigned_NDVI=ddply(assignedNDVI, .(plot_id), .fun=function(x){
+  #minimum observation
+  MinOb=round(min(x$sensor_observation), 2)
+  #max observation rounded to two decimal places
+  MaxOb=round(max(x$sensor_observation),2)
+  #average observtion per plot
+  MeanOb=round(mean(x$sensor_observation),2)
+  #variance per plot with 4 decimals
+  Variance=round(var(x$sensor_observation),4)
+  #standard deviaiton per plot 
+  STDEV=round(sd(x$sensor_observation),2)
+  #coefficient of varioatn per plot
+  CV=round((sd(x$sensor_observation)/mean(x$sensor_observation))*100,2)
+  #number of observations per plot
+  NumObs=nrow(x)
+  #sensor ID
+  sensor_ID=as.character(x$sensor_ID[1])
+  #sampling date
+  sampling_Date=as.character(x$sampling_Date[1])
+  #return data frame with above information
+  return(c(MinOb, MaxOb, MeanOb, Variance,STDEV, CV, NumObs, sensor_ID, sampling_Date))
+})
+
+colnames(sum_assigned_NDVI)=c("plot_id","MinOb", "MaxOb", "MeanOb","Variance", "STDEV", "CV", "NumObs", "sensor_ID", "sampling_Date")
+sum_assigned_NDVI$MinOb=as.numeric(sum_assigned_NDVI$MinOb)
+sum_assigned_NDVI$MaxOb=as.numeric(sum_assigned_NDVI$MaxOb)
+sum_assigned_NDVI$MeanOb=as.numeric(sum_assigned_NDVI$MeanOb)
+sum_assigned_NDVI$Variance=as.numeric(sum_assigned_NDVI$Variance)
+sum_assigned_NDVI$STDEV=as.numeric(sum_assigned_NDVI$STDEV)
+sum_assigned_NDVI$CV=as.numeric(sum_assigned_NDVI$CV)
+sum_assigned_NDVI$NumObs=as.numeric(sum_assigned_NDVI$NumObs)
+
+
+sum_assigned_IRT=ddply(assignedIRT, .(plot_id), .fun=function(x){
+  #minimum observation
+  MinOb=round(min(x$sensor_observation), 2)
+  #max observation rounded to two decimal places
+  MaxOb=round(max(x$sensor_observation),2)
+  #average observtion per plot
+  MeanOb=round(mean(x$sensor_observation),2)
+  #variance per plot with 4 decimals
+  Variance=round(var(x$sensor_observation),4)
+  #standard deviaiton per plot 
+  STDEV=round(sd(x$sensor_observation),2)
+  #coefficient of varioatn per plot
+  CV=round((sd(x$sensor_observation)/mean(x$sensor_observation))*100,2)
+  #number of observations per plot
+  NumObs=nrow(x)
+  #sensor ID
+  sensor_ID=as.character(x$sensor_ID[1])
+  #sampling date
+  sampling_Date=as.character(x$sampling_Date[1])
+  #return data frame with above information
+  return(c(MinOb, MaxOb, MeanOb, Variance,STDEV, CV, NumObs, sensor_ID, sampling_Date))
+})
+
+colnames(sum_assigned_IRT)=c("plot_id","MinOb", "MaxOb", "MeanOb","Variance", "STDEV", "CV", "NumObs", "sensor_ID", "sampling_Date")
+sum_assigned_IRT$MinOb=as.numeric(sum_assigned_IRT$MinOb)
+sum_assigned_IRT$MaxOb=as.numeric(sum_assigned_IRT$MaxOb)
+sum_assigned_IRT$MeanOb=as.numeric(sum_assigned_IRT$MeanOb)
+sum_assigned_IRT$Variance=as.numeric(sum_assigned_IRT$Variance)
+sum_assigned_IRT$STDEV=as.numeric(sum_assigned_IRT$STDEV)
+sum_assigned_IRT$CV=as.numeric(sum_assigned_IRT$CV)
+sum_assigned_IRT$NumObs=as.numeric(sum_assigned_IRT$NumObs)
+
+#Functions
+##expgraph makes a blank plot of the area in the data set
+expgraph=function(x){
+  #Plots using maximum and minimum UTM coordinates, creates blank plot
+  with(x, plot(absolute_sensor_position_x, absolute_sensor_position_y, type="n", main="", xlab="UTM East", ylab="UTM North", xlim=c(min(absolute_sensor_position_x)-1, max(absolute_sensor_position_x))+1, ylim=c(min(absolute_sensor_position_y), max(absolute_sensor_position_y))))
+  #with(x, north.arrow(xb=(max(absolute_sensor_position_x)+0.75), yb=(max(absolute_sensor_position_y)-2), len=.25, tcol="black", lab="N", cex.lab=.75))
+  #need to have GISTools for north arrow to work, I have had problems loading the package on server
+}
+
+#function to graph NDVI which ranges from 0 to 1 by color rainbow for value
+gspoints=function(x){
+  with(x, points(absolute_sensor_position_x, absolute_sensor_position_y, col=rainbow(1000)[sensor_observation*1000], cex=0.2))
+  
+}
+
+#function to graph infrared points by binning temperatures
+irpoints=function(x){
+  bins=cut(x$sensor_observation, c(-Inf,25, 27, 28, 29, 30, 31,32,33,34,35,37,39,42, Inf ))
+  with(x, points(absolute_sensor_position_x, absolute_sensor_position_y, col=rainbow(14)[bins], cex=0.2))
+}
+plot_boundary=function(x){
+  for (i in 1:nrow(x)){
+    #using the sonar data plot a polygon using the four corners
+    with(x, polygon(x=c(C2_1_x[i], C2_2_x[i], C1_2_x[i], C1_1_x[i]), y=c(C2_1_y[i], C2_2_y[i], C1_2_y[i], C1_1_y[i]), border="black"))
+  }
+}
+
+##this add a plot label, label can be decided from existing column of data frame
+plot_label=function(x="dataframe", y="df$colname"){
+  for(i in 1:nrow(x)){
+    with(x, text(x=((C2_1_x[i]+C2_2_x[i])/2), y=((C2_1_y[i]+ C1_2_y[i])/2), labels=paste(y[i], sep="\n"), cex=0.75))
+  }
+}
+```
+
+---
+title: "`r paste("Data Summary for ", experiment_id, sep="")`"
+author: "Jared Crain"
+date: "`r Sys.Date()`"
+
+---
+
+Summary:  For Phenocorn run on `r dataNDVI$sampling_Date[1]` there were `r nrow(dataNDVI)` data points.  Of the `r nrow(dataNDVI)` observations, `r nrow(assignedNDVI)` data points were assigned to geo-referenced plots.  These observations correspond to the `r experiment_id` trial which has `r nrow(plots)` plots.  
+
+Location:  
+```{r google_map_location, echo=FALSE, fig.width=7, fig.height=7, warning=FALSE, message=FALSE}
+require(ggmap)
+require(rgdal)
+#function to convert UTM experiment coordinates to Lat long to graph on GOOGLE earth
+experiment_lat_long=function(x){
+# prepare UTM coordinates matrix
+CRSstring=paste("+proj=utm +zone=", x$long_zone, sep="")
+utmcoor1<-SpatialPoints(cbind(x$C1_1_x,x$C1_1_y), proj4string=CRS("+proj=utm +zone=12 +ellps=WGS84"))
+utmcoor2<-SpatialPoints(cbind(x$C1_2_x,x$C1_2_y), proj4string=CRS("+proj=utm +zone=12 +ellps=WGS84"))
+utmcoor3<-SpatialPoints(cbind(x$C2_1_x,x$C2_1_y), proj4string=CRS("+proj=utm +zone=12 +ellps=WGS84"))
+utmcoor4<-SpatialPoints(cbind(x$C2_2_x,x$C2_2_y), proj4string=CRS("+proj=utm +zone=12 +ellps=WGS84"))
+#utmdata$X and utmdata$Y are corresponding to UTM Easting and Northing, respectively.
+#zone= UTM zone
+# converting
+utmcoor1r<-spTransform(utmcoor1,CRS("+proj=longlat +ellps=WGS84"))
+utmcoor2r<-spTransform(utmcoor2,CRS("+proj=longlat +ellps=WGS84"))
+utmcoor3r<-spTransform(utmcoor3,CRS("+proj=longlat +ellps=WGS84"))
+utmcoor4r<-spTransform(utmcoor4,CRS("+proj=longlat +ellps=WGS84"))
+experiment=cbind(x, utmcoor1r, utmcoor2r, utmcoor3r, utmcoor4r)
+colnames(experiment)[23:30]=c("Long1", "Lat1", "Long2", "Lat2", "Long3", "Lat3", "Long4", "Lat4")
+return(experiment)}
+experiment=experiment_lat_long(experiment)
+a=get_map(location=c(lon=mean(dataNDVI$left_long), lat=mean(dataNDVI$left_lat) ), zoom=19, maptype="satellite", source="google")
+
+##function makes a map color coded by NDVI value with experiment border included in white
+ggmap(a )+geom_point( aes(x = dataNDVI$left_long, y = dataNDVI$left_lat, col=dataNDVI$sensor_observation ), size=0.5,data = dataNDVI, alpha = .5)+theme(legend.position="none")+scale_colour_gradientn(colours = rainbow(8))+geom_path(aes(x=c(experiment$Long1,experiment$Long2, experiment$Long4 ,experiment$Long3, experiment$Long1), y=c(experiment$Lat1,experiment$Lat2, experiment$Lat4, experiment$Lat3, experiment$Lat1)), linejoin = "round",col="white", size=0.8 ,data=experiment)
+
+
+
+```
+
+\pagebreak
+
+Tabular statistics for the NDVI data are:
+
+```{r summary_statNDVI, echo=FALSE}
+summary(dataNDVI[,2])
+```
+
+```{r NDVI_Graph, echo=FALSE, fig.width=12*ratio, fig.height=12}
+expgraph(dataNDVI)
+gspoints(dataNDVI)
+plot_boundary(plots)
+title(main=experiment_id, sub=dataNDVI$sampling_Date[1])
+```
+\pagebreak
+
+Tabular statistics for IRT data:
+
+```{r summary_statIRT, echo=FALSE}
+summary(dataIRT[,2])
+```
+
+```{r, echo=FALSE, fig.width=12*ratio, fig.height=12}
+expgraph(dataNDVI)
+irpoints(dataIRT)
+plot_boundary(plots)
+title(main=experiment_id, sub=dataIRT$sampling_Date[1])
+```
+
+\pagebreak
+
+Plot level statistics:
+
+NDVI plot level data:
+
+```{r, plot_level_NDVI, global.par=FALSE, echo=FALSE, message=FALSE, warning=FALSE, fig.height=8, fig.width=8}
+require(plyr)
+if(nrow(plots) > 50){
+  d_ply(sum_assigned_NDVI, .(), .fun=function(x){
+    par(mfrow=c(2,2))
+  hist(x$MeanOb, main=paste("Sensor", x$sensor_ID[1], experiment_id , sep= " "), sub=paste(x$sampling_Date[1] ,sep=" ") ,ylab="Number of Plots", xlab="Mean Observation", cex=0.75) 
+##  hist(x$Variance, main=paste("Sensor", x$sensor_ID[1], experiment_id, sep=" "),sub=paste(x$sampling_Date[1] ,sep=" ") ,ylab="Number of Plots", xlab="Variance of plosts", cex=0.75)
+ hist(x$STDEV, main=paste("Sensor", x$sensor_ID[1], experiment_id , sep= " "), sub=paste( x$sampling_Date[1] ,sep=" ") ,ylab="Number of Plots", xlab="Standard Deviaiton", cex=0.75)  
+ hist(x$NumObs, main=paste("Sensor", x$sensor_ID[1], experiment_id , sep= " "), sub=paste(x$sampling_Date[1] ,sep=" ") ,ylab="Number of Plots", xlab="Number of Observations", cex=0.75)
+  hist(x$CV, main=paste("Sensor", x$sensor_ID[1], experiment_id , sep= " "), sub=paste( x$sampling_Date[1] ,sep=" ") ,ylab="Number of Plots", xlab="%CV", cex=0.75)
+})
+}else{sum_assigned_NDVI[,1:7]}
+```
+\pagebreak
+
+IRT plot level data:
+
+```{r plot_level_IRT, global.par=FALSE,echo=FALSE,message=FALSE, warning=FALSE,fig.height=8, fig.width=8}
+if(nrow(plots)>50){
+  par(mfrow=c(2,2))
+    d_ply(sum_assigned_IRT, .(), .fun=function(x){
+  hist(x$MeanOb, main=paste("Sensor", x$sensor_ID[1], experiment_id , sep= " "), sub=paste(x$sampling_Date[1] ,sep=" ") ,ylab="Number of Plots", xlab="Mean Observation", cex=0.75) 
+#  hist(x$Variance, main=paste("Sensor", x$sensor_ID[1], experiment_id, sep=" "),sub=paste(x$sampling_Date[1] ,sep=" ") ,ylab="Number of Plots", xlab="Variance of plosts", cex=0.75)
+ hist(x$STDEV, main=paste("Sensor", x$sensor_ID[1], experiment_id , sep= " "), sub=paste( x$sampling_Date[1] ,sep=" ") ,ylab="Number of Plots", xlab="Standard Deviaiton", cex=0.75)  
+ hist(x$NumObs, main=paste("Sensor", x$sensor_ID[1], experiment_id , sep= " "), sub=paste(x$sampling_Date[1] ,sep=" ") ,ylab="Number of Plots", xlab="Number of Observations", cex=0.75)
+  hist(x$CV, main=paste("Sensor", x$sensor_ID[1], experiment_id , sep= " "), sub=paste( x$sampling_Date[1] ,sep=" ") ,ylab="Number of Plots", xlab="%CV", cex=0.75)
+})
+}else{sum_assigned_IRT[,1:7]}
+```
