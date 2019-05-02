@@ -3,7 +3,7 @@
 # $1 is the path to the GBS files to process
 #
 set -v
-cd ~/incoming/$1/
+cd /bulk/mlucas/incoming/$1/
 cat *.gz.md5
 find . -name "*.gz.md5" | xargs md5sum -c
 for filename in ./*.gz

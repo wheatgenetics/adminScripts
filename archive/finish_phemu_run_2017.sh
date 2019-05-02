@@ -26,7 +26,7 @@ pwd
 
 find . -maxdepth 1 -name "*p1.csv"| xargs rm
 find . -maxdepth 1 -name "*p2.csv"| xargs rm
-find . -maxdepth 1 -name "*p3.csv"| xargs rm
+find . -maxdepth 1 -name "*p4.csv"| xargs rm
 find . -maxdepth 1 -name "*p4r.txt" | xargs rm
 find . -maxdepth 1 -name "*p3r.txt" | xargs rm
 find . -maxdepth 1 -name "*.sql" | xargs rm
@@ -46,14 +46,20 @@ find ./Noises -maxdepth 2  -name "*_IMG_*.JPG" | xargs mv -t .
 #
 tarSourceFolder=$runID'_source_files.tar'
 echo $tarSourceFolder
-tar -zcvf $tarSourceFolder *.txt *.csv
+tar -zcvf $tarSourceFolder *GNSS.txt *p3.csv
 #
 # tar the unmatched images in Cam*
 #
-tarUnmatchedFolder=$runID'_unmatched_images.tar'
-echo $tarUnmatchedFolder
-tar -zcvf $tarUnmatchedFolder cam*
+#tarUnmatchedFolder=$runID'_unmatched_images.tar'
+#echo $tarUnmatchedFolder
+#tar -zcvf $tarUnmatchedFolder cam*
 #
+#
+# Clean up extraneous files
+#
+rm IMG*.JPG
+rm *.csv
+rm *.txt
 # Change permissions and group on the run directory and rename with run_id
 #
 cd ..
@@ -64,6 +70,8 @@ phemuProd_Folder=$phemuProdFolder | cut -c3-
 echo $phemuProdFolder
 mv $runFileName $phemuProdFolder.
 cd $phemuProdFolder
+echo "Changing group to ksu-plantpath-jpoland"
 chgrp -R ksu-plantpath-jpoland $runFileName
-#chmod -R u-w $runFileName
+echo "Removing write permissions from all files"
+chmod -R u-w $runFileName
 exit

@@ -1,18 +1,19 @@
 #!/bin/bash
-# Description: Backup wheatgenetics mysql database
-# Date: October 27,2014
-# Updated: April 4,2019 to point to /bulk/mlucas/backup/wheatgenetics-database
+# Description: Backup intermediate_wheatgrass  mysql database
+# Date: January 25,2017
+
+
 #
 NOW=$(date +"%Y%m%d")
 echo $NOW
-DEST="/bulk/mlucas/backup/wheatgenetics_database"
+DEST="/bulk/mlucas/backup/iwg_database"
 echo $DEST
 #
 # set mysql login info
 #
 MUSER="mlucas"               
 MHOST="apate"
-MDB="wheatgenetics"
+MDB="intermediate_wheatgrass"
 #
 # Find location of binaries needed
 # 

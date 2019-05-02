@@ -39,8 +39,8 @@ echo "Camera ID: "$cameraID
 # Determine the path to the folder containing the image files
 #
 cd $flightPath
-imageFolder=`find -maxdepth 1 -wholename "./*" -type d`
-mv $imageFolder/* .
+*imageFolder=`find -maxdepth 1 -wholename "./*" -type d`
+*mv $imageFolder/* .
 imagePath=$flightPath'/'
 echo "Path to Image Files: "$imagePath
 imageCount=`ls -1 *.CR2 | wc -l`
