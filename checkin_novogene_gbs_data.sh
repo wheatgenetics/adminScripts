@@ -1,8 +1,7 @@
 #!/bin/bash
+# This script checks in GBS data by calling 4 python scripts
 #
-# $1 is the path to the GBS files to process
-#
-# Determine the names of the folders containing the GBS data
+# $1 is the GBS folder in /bulk/altschuler/incoming to process. For example, C202SC19050314
 #
 date
 cd /bulk/mlucas/incoming/$1/
