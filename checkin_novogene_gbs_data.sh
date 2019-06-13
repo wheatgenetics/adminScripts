@@ -14,6 +14,7 @@ echo $gbsFolders
 #
 
 for file in $gbsFolders; do
+  echo '*****'
   echo "Processing GBS folder: "$file
   cd $file
   d=$(pwd)
@@ -52,6 +53,8 @@ for file in $gbsFolders; do
   find . -name "*R1*fastq.txt.gz"| xargs -I {} mv {} /bulk/jpoland/sequence/.
   find . -name "*R2*fastq.txt.gz"| xargs -I {} mv {} /bulk/altschuler/PE_sequence/R2_files/.
   date
+  echo '*****'
+  echo
 done
 
 echo "QC Completed"
