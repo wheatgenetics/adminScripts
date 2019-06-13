@@ -8,56 +8,55 @@ date
 cd /bulk/altschuler/incoming/$1/
 
 gbsFolders=$(find /bulk/altschuler/incoming/$1/raw_data -maxdepth 1 -name "GBS*" )
-echo $gbsFolders
+echo
+echo 'Found the following folders to process:'
+printf '%s\n' "${gbsFolders[@]}"
+
 #
 # Process each GBS folder
 #
 
-for file in $gbsFolders; do
-  echo '*****'
-  echo "Processing GBS folder: "$file
-  cd $file
-  d=$(pwd)
-  echo "Working Directory: "$d
-  echo "Verifying checksums"
+for folder in $gbsFolders; do
+  echo
+  echo '********************'
   date
+  echo
+  echo "Processing GBS folder:"
+  echo $folder
+  cd $folder
+  echo
+  echo "Verifying checksums:"
   md5CheckResult=$(md5sum -c MD5.txt)
-  echo $md5CheckResult
+  printf '%s\n' "${md5CheckResult[@]}"  
   
   if [[ $md5CheckResult == *"FAIL"* ]]; then
     echo "MD5 Check Failed"
-  
   fi
 
-  echo "Renaming GBS file and updating flowcell and lane in gbs table"
-  echo "Processing GBS folder: "$file
-  date
-  /homes/altschuler/python3_programs/GBS/rename_gbs_file -p $file -s novogene
-  date
-  echo "Generating QC reports for GBS File"
+  echo
+  echo "Renaming GBS files and updating flowcell and lane in gbs table:"
+  /homes/altschuler/python3_programs/GBS/rename_gbs_file -p $folder -s novogene
+  echo
+  echo "Generating QC reports for GBS File:"
   find . -name "*R1*fastq.txt.gz"| xargs -I {} /homes/altschuler/python3_programs/GBS/generate_barcode_distribution-V04 -i {}
-  echo "Generating DNA Quantification report"
-  gbsFile="$(basename "$file")"
+  echo
+  echo "Generating DNA Quantification report:"
+  gbsFile="$(basename "$folder")"
   gbsNumber=$(echo "${gbsFile}" | cut -c1-7)
-  echo $gbsNumber
-  date
   /homes/altschuler/python3_programs/GBS/dna_quantification_report -g $gbsNumber
-  echo "QC Completed"
-  echo "Calculating MD5 and line counts for GBS file"
-  date
+  echo
+  echo "Calculating MD5 and line counts for GBS file:"
   find . -name "*fastq.txt.gz"| xargs -I {} /homes/altschuler/python3_programs/GBS/compute_gbs_file_table_metadata -p {}
-  date
-  echo "Moving  GBS files to sequence archive"
+  echo
+  echo "Moving  GBS files to sequence archive:"
   find . -name "*fastq.txt.gz"| xargs -I {} chgrp ksu-plantpath-jpoland {}
   find . -name "*fastq.txt.gz"| xargs -I {} chmod a-w {}
   find . -name "*R1*fastq.txt.gz"| xargs -I {} mv {} /bulk/jpoland/sequence/.
   find . -name "*R2*fastq.txt.gz"| xargs -I {} mv {} /bulk/altschuler/PE_sequence/R2_files/.
-  date
-  echo '*****'
+  echo '********************'
   echo
 done
 
-echo "QC Completed"
-echo "Check-in Completed"
+echo "Check-in completed"
 
 exit
