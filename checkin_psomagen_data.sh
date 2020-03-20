@@ -5,3 +5,11 @@
 #
 
 date
+
+cd /bulk/jpoland/raw_data/psomagen/$1/
+
+folders=$(find /bulk/jpoland/raw_data/psomagen/$1 -maxdepth 1 -name "GBS*")
+
+echo
+echo 'Found the following folders to process:'
+printf '%s\n' "${folders[@]}"
