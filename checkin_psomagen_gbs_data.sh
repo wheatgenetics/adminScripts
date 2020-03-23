@@ -15,10 +15,6 @@ echo 'Found the following folders to process:'
 printf '%s\n' "${folders[@]}"
 echo
 
-# Make all files read only
-echo 'Changing all file permissions to read only (444)'
-$(chmod -R 0444 .)
-
 # Change group ownership to ksu-plantpath-jpoland for all files and folders
 echo 'Changing group ownership to ksu-plantpath-jpoland for all files and folders'
 $(chgrp -R ksu-plantpath-jpoland .)
@@ -35,11 +31,15 @@ for folder in $folders; do
   echo
   md5name=$(basename $folder).md5
   echo "Verifying checksums in ${md5name}:"
-  $(md5sum -c ${md5name} > ${md5name}.checked)
+#  $(md5sum -c ${md5name} > ${md5name}.checked)
 
   if [[ $md5CheckResult == *"FAIL"* ]]; then
     echo "MD5 Check Failed"
   fi
+
+  # Make all files read only
+  echo 'Changing all file permissions to read only (444)'
+  $(chmod 0444 *)
 done
 
 echo
