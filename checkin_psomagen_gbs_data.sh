@@ -31,7 +31,7 @@ for folder in $folders; do
   echo
   md5name=$(basename $folder).md5
   echo "Verifying checksums in ${md5name}:"
-#  $(md5sum -c ${md5name} > ${md5name}.checked)
+  $(md5sum -c ${md5name} > ${md5name}.checked)
 
   if [[ $md5CheckResult == *"FAIL"* ]]; then
     echo "MD5 Check Failed"
