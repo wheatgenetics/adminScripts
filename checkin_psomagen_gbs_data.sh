@@ -42,7 +42,6 @@ for folder in $folders; do
   python /homes/altschuler/GBS/rename_gbs_file_and_update_flowcell_and_name_in_database.py -p $folder -s psomagen
   echo
 
-
   # Make all files read only
   echo 'Changing all file permissions to read only (444)'
   $(chmod 0444 *)
