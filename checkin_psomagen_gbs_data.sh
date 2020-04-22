@@ -1,6 +1,8 @@
 #!/bin/bash
 # This script checks in Psomagen data
 #
+# Usage: ./checkin_psomagen_gbs_data.sh <folder_name>
+#
 # $1 is the folder in /bulk/jpoland/raw_data/psomagen to process. For example, 2002UNHX-0520
 #
 
@@ -38,9 +40,9 @@ for folder in $folders; do
   fi
 
   echo
-  echo "Renaming GBS files and updating flowcell and lane in gbs table:"
-  python /homes/altschuler/GBS/rename_gbs_file_and_update_flowcell_and_name_in_database.py -p $folder -s psomagen
-  echo
+#  echo "Renaming GBS files and updating flowcell and lane in gbs table:"
+#  python /homes/altschuler/GBS/rename_gbs_file_and_update_flowcell_and_name_in_database.py -p $folder -s psomagen
+#  echo
 
   # Make all files read only
   echo 'Changing all file permissions to read only (444)'
