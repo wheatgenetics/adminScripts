@@ -40,13 +40,17 @@ for folder in $folders; do
   fi
 
   echo
-  echo "Renaming GBS files and updating flowcell and lane in gbs table:"
+  echo "Making copy of R1 GBS file, renaming it for TASSEL pipeline  and updating flowcell and lane in gbs table:"
   python /homes/altschuler/scripts/GBS/rename_gbs_file_and_update_flowcell_and_name_in_database.py -p $folder -s psomagen
   echo
 
   # Make all files read only
   echo 'Changing all file permissions to read only (444)'
   $(chmod 0444 *)
+
+  # Move renamed file to /bulk/jpoland/gbs
+  echo "Moving renamed R1 file to /bulk/jpoland/gbs"
+  $(mv *fastq.txt.gz /bulk/jpoland/gbs)
 done
 
 echo
