@@ -34,10 +34,11 @@ for folder in $folders; do
   md5name=$(basename $folder).md5
   echo "Verifying checksums in ${md5name}:"
   $(md5sum -c ${md5name} > ${md5name}.checked)
-
-  if [[ $md5CheckResult == *"FAIL"* ]]; then
-    echo "MD5 Check Failed"
-  fi
+  
+  # Add the below check later.
+  # if [[ $md5CheckResult == *"FAIL"* ]]; then
+  #   echo "MD5 Check Failed"
+  # fi
 
   echo
   echo "Making copy of R1 GBS file, renaming it for TASSEL pipeline  and updating flowcell and lane in gbs table:"
